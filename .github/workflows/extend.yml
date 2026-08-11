@@ -8,6 +8,22 @@ on:
 jobs:
   extend-app:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        account:
+          - username: ${{ secrets.PA_USERNAME_1 }}
+            password: ${{ secrets.PA_PASSWORD_1 }}
+          - username: ${{ secrets.PA_USERNAME_2 }}
+            password: ${{ secrets.PA_PASSWORD_2 }}
+          - username: ${{ secrets.PA_USERNAME_3 }}
+            password: ${{ secrets.PA_PASSWORD_3 }}
+          - username: ${{ secrets.PA_USERNAME_4 }}
+            password: ${{ secrets.PA_PASSWORD_4 }}
+          - username: ${{ secrets.PA_USERNAME_5 }}
+            password: ${{ secrets.PA_PASSWORD_5 }}
+          - username: ${{ secrets.PA_USERNAME_6 }}
+            password: ${{ secrets.PA_PASSWORD_6 }}
 
     steps:
       - name: Checkout Repository
@@ -26,6 +42,6 @@ jobs:
 
       - name: Run Extension Script
         env:
-          PA_USERNAME: ${{ secrets.PA_USERNAME }}
-          PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
+          PA_USERNAME: ${{ matrix.account.username }}
+          PA_PASSWORD: ${{ matrix.account.password }}
         run: python extend_pythonanywhere.py
