@@ -21,8 +21,8 @@ session.headers.update({
 print("Fetching login page for CSRF token...")
 login_page = session.get(LOGIN_URL)
 soup = BeautifulSoup(login_page.text, "html.parser")
-csrf_input = soup.find("input", {"name": "csrfmiddlewaretoken"})
 
+csrf_input = soup.find("input", {"name": "csrfmiddlewaretoken"})
 if not csrf_input:
     print("Error: Could not find CSRF token on login page.")
     sys.exit(1)
@@ -34,16 +34,20 @@ login_payload = {
     "csrfmiddlewaretoken": csrf_token,
     "auth-username": USERNAME,
     "auth-password": PASSWORD,
+    "login_view-current_step": "auth",
 }
 
-login_response = session.post(
-    LOGIN_URL,
-    data=login_payload,
-    headers={"Referer": LOGIN_URL}
-)
+# Explicitly pass CSRF token in headers and cookies
+headers = {
+    "Referer": LOGIN_URL,
+    "X-CSRFToken": csrf_token,
+}
 
-if "Log out" not in login_response.text:
-    print("Error: Login failed. Check your credentials.")
+login_response = session.post(LOGIN_URL, data=login_payload, headers=headers)
+
+# Check if login was successful by examining session cookies or redirect
+if "sessionid" not in session.cookies:
+    print("Error: Login failed. Check your credentials in GitHub Secrets.")
     sys.exit(1)
 
 print("Login successful. Checking webapps page...")
@@ -60,13 +64,19 @@ if not extend_form:
 extend_action = extend_form["action"]
 extend_url = f"https://www.pythonanywhere.com{extend_action}"
 
-extend_csrf = extend_form.find("input", {"name": "csrfmiddlewaretoken"})["value"]
+extend_csrf_input = extend_form.find("input", {"name": "csrfmiddlewaretoken"})
+extend_csrf = extend_csrf_input["value"] if extend_csrf_input else session.cookies.get("csrftoken")
 
 print("Triggering extension...")
+extend_headers = {
+    "Referer": WEBAPPS_URL,
+    "X-CSRFToken": extend_csrf,
+}
+
 extend_response = session.post(
     extend_url,
     data={"csrfmiddlewaretoken": extend_csrf},
-    headers={"Referer": WEBAPPS_URL}
+    headers=extend_headers
 )
 
 if extend_response.status_code == 200:
