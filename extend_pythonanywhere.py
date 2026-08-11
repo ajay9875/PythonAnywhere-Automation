@@ -21,35 +21,41 @@ def run():
 
         print("Navigating to login page...")
         page.goto("https://www.pythonanywhere.com/login/")
+        page.wait_for_load_state("networkidle")
 
         print("Entering credentials...")
-        page.fill("input[name='id_auth-username']", USERNAME)
-        page.fill("input[name='id_auth-password']", PASSWORD)
+        # Targeted selectors matching PythonAnywhere's actual login elements
+        username_input = page.locator("#id_auth-username, input[name='auth-username'], input[type='text']").first
+        password_input = page.locator("#id_auth-password, input[name='auth-password'], input[type='password']").first
+
+        username_input.fill(USERNAME)
+        password_input.fill(PASSWORD)
         
         print("Submitting login form...")
-        page.click("button[type='submit']")
+        submit_btn = page.locator("#id_next, button[type='submit'], input[type='submit']").first
+        submit_btn.click()
 
-        # Wait for navigation after login
+        # Wait for navigation after submit
         page.wait_for_load_state("networkidle")
 
         print("Navigating to Web Apps page...")
         page.goto(WEBAPPS_URL)
         page.wait_for_load_state("networkidle")
 
-        # Check if login succeeded
+        # Verify login success
         if "login" in page.url:
-            print("Error: Login failed. Please verify PA_USERNAME and PA_PASSWORD in GitHub Secrets.")
+            print("Error: Login failed. Check PA_USERNAME and PA_PASSWORD in GitHub Secrets.")
             browser.close()
             sys.exit(1)
 
         print("Login verified. Looking for Extend button...")
 
-        # Search for the extend button
-        extend_button = page.locator("form[action*='/extend'] input[type='submit'], form[action*='/extend'] button")
+        # Search for the extend button form
+        extend_button = page.locator("form[action*='/extend'] input[type='submit'], form[action*='/extend'] button, input[value*='Run until']")
 
-        if extend_button.count() > 0 and extend_button.is_visible():
+        if extend_button.count() > 0:
             print("Clicking 'Run until 1 month from today' button...")
-            extend_button.click()
+            extend_button.first.click()
             page.wait_for_load_state("networkidle")
             print("Success: Web app expiry extended successfully!")
         else:
