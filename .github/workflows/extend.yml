@@ -7,7 +7,7 @@ on:
 
 jobs:
   extend-app:
-    name: extend-account-${{ matrix.index }}
+    name: extend-account - ${{ matrix.account.username }}    
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
