@@ -2,7 +2,6 @@ import os
 import sys
 from playwright.sync_api import sync_playwright
 
-# Parse comma-separated credentials from GitHub Secrets
 USERNAMES = [u.strip() for u in os.environ.get("PA_USERNAME", "").split(",") if u.strip()]
 PASSWORDS = [p.strip() for p in os.environ.get("PA_PASSWORD", "").split(",") if p.strip()]
 
@@ -21,22 +20,21 @@ def extend_single_account(page, username, password):
     print(f"Processing PythonAnywhere Account: {username}")
     print(f"==========================================")
 
-    # Step 1: Navigate to Login
     print("Navigating to login page...")
     page.goto("https://www.pythonanywhere.com/login/")
     page.wait_for_load_state("networkidle")
 
-    # Step 2: Fill & Submit Credentials
     print("Entering credentials...")
-    username_input = page.locator("#id_auth-username, input[name='auth-username'], input[type='text']").first
-    password_input = page.locator("#id_auth-password, input[name='auth-password'], input[type='password']").first
+    # Specific selectors targeting only the visible auth form inputs
+    username_input = page.locator("#id_auth-username, input[name='auth-username']").filter(has_not_class="tt-hint").first
+    password_input = page.locator("#id_auth-password, input[name='auth-password']").first
 
+    username_input.wait_for(state="visible", timeout=10000)
     username_input.fill(username)
     password_input.fill(password)
     password_input.press("Enter")
     page.wait_for_load_state("networkidle")
 
-    # Step 3: Navigate to Web Apps Dashboard
     print("Navigating to Web Apps page...")
     page.goto(webapps_url)
     page.wait_for_load_state("networkidle")
@@ -47,7 +45,6 @@ def extend_single_account(page, username, password):
 
     print("Login verified. Searching for extend button...")
 
-    # Step 4: Click Extend Button
     extend_button = page.locator(
         "form[action*='/extend'] input[type='submit'], form[action*='/extend'] button, input[value*='Run until']"
     ).first
@@ -61,7 +58,6 @@ def extend_single_account(page, username, password):
     else:
         print(f"Extend button not found or app is already extended for '{username}'.")
 
-    # Step 5: Log out to clear session for next account
     print("Logging out...")
     page.goto("https://www.pythonanywhere.com/logout/")
     page.wait_for_load_state("networkidle")
@@ -77,11 +73,11 @@ def run():
         )
         page = context.new_page()
 
-        # Loop through each account sequentially
         for user, pwd in zip(USERNAMES, PASSWORDS):
             extend_single_account(page, user, pwd)
 
         browser.close()
+
 
 if __name__ == "__main__":
     run()
