@@ -1,0 +1,31 @@
+name: Extend PythonAnywhere WebApp
+
+on:
+  schedule:
+    # Runs at 00:00 UTC on the 1st and 15th of every month
+    - cron: '0 0 1,15 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  extend-app:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: Run Extension Script
+        env:
+          PA_USERNAME: ${{ secrets.PA_USERNAME }}
+          PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
+        run: python extend_pythonanywhere.py
