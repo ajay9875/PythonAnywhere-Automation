@@ -2,9 +2,8 @@ name: Extend PythonAnywhere WebApp
 
 on:
   schedule:
-    # Runs at 00:00 UTC on the 1st and 15th of every month (Every ~15 days)
     - cron: '0 0 1,15 * *'
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   extend-app:
@@ -22,7 +21,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          pip install playwright
+          playwright install chromium --with-deps
 
       - name: Run Extension Script
         env:
