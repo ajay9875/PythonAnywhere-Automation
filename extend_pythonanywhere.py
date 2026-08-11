@@ -2,14 +2,71 @@ import os
 import sys
 from playwright.sync_api import sync_playwright
 
-USERNAME = os.environ.get("PA_USERNAME")
-PASSWORD = os.environ.get("PA_PASSWORD")
+# Parse comma-separated credentials from GitHub Secrets
+USERNAMES = [u.strip() for u in os.environ.get("PA_USERNAME", "").split(",") if u.strip()]
+PASSWORDS = [p.strip() for p in os.environ.get("PA_PASSWORD", "").split(",") if p.strip()]
 
-if not USERNAME or not PASSWORD:
-    print("Error: Missing PythonAnywhere credentials in environment variables.")
+if not USERNAMES or not PASSWORDS:
+    print("Error: PA_USERNAME or PA_PASSWORD environment variables are missing.")
     sys.exit(1)
 
-WEBAPPS_URL = f"https://www.pythonanywhere.com/user/{USERNAME}/webapps/"
+if len(USERNAMES) != len(PASSWORDS):
+    print("Error: The number of usernames and passwords must match.")
+    sys.exit(1)
+
+
+def extend_single_account(page, username, password):
+    webapps_url = f"https://www.pythonanywhere.com/user/{username}/webapps/"
+    print(f"\n==========================================")
+    print(f"Processing PythonAnywhere Account: {username}")
+    print(f"==========================================")
+
+    # Step 1: Navigate to Login
+    print("Navigating to login page...")
+    page.goto("https://www.pythonanywhere.com/login/")
+    page.wait_for_load_state("networkidle")
+
+    # Step 2: Fill & Submit Credentials
+    print("Entering credentials...")
+    username_input = page.locator("#id_auth-username, input[name='auth-username'], input[type='text']").first
+    password_input = page.locator("#id_auth-password, input[name='auth-password'], input[type='password']").first
+
+    username_input.fill(username)
+    password_input.fill(password)
+    password_input.press("Enter")
+    page.wait_for_load_state("networkidle")
+
+    # Step 3: Navigate to Web Apps Dashboard
+    print("Navigating to Web Apps page...")
+    page.goto(webapps_url)
+    page.wait_for_load_state("networkidle")
+
+    if "login" in page.url:
+        print(f"Error: Login failed for user '{username}'. Skipping...")
+        return False
+
+    print("Login verified. Searching for extend button...")
+
+    # Step 4: Click Extend Button
+    extend_button = page.locator(
+        "form[action*='/extend'] input[type='submit'], form[action*='/extend'] button, input[value*='Run until']"
+    ).first
+
+    if extend_button.count() > 0:
+        print("Clicking 'Run until 1 month from today' button...")
+        extend_button.scroll_into_view_if_needed()
+        extend_button.click(force=True)
+        page.wait_for_load_state("networkidle")
+        print(f"Success: Web app expiry extended successfully for '{username}'!")
+    else:
+        print(f"Extend button not found or app is already extended for '{username}'.")
+
+    # Step 5: Log out to clear session for next account
+    print("Logging out...")
+    page.goto("https://www.pythonanywhere.com/logout/")
+    page.wait_for_load_state("networkidle")
+    return True
+
 
 def run():
     with sync_playwright() as p:
@@ -20,44 +77,9 @@ def run():
         )
         page = context.new_page()
 
-        print("Navigating to login page...")
-        page.goto("https://www.pythonanywhere.com/login/")
-        page.wait_for_load_state("networkidle")
-
-        print("Entering credentials...")
-        username_input = page.locator("#id_auth-username, input[name='auth-username'], input[type='text']").first
-        password_input = page.locator("#id_auth-password, input[name='auth-password'], input[type='password']").first
-
-        username_input.fill(USERNAME)
-        password_input.fill(PASSWORD)
-
-        print("Submitting login form...")
-        # Press Enter key directly inside the password field to submit
-        password_input.press("Enter")
-
-        page.wait_for_load_state("networkidle")
-
-        print("Navigating to Web Apps page...")
-        page.goto(WEBAPPS_URL)
-        page.wait_for_load_state("networkidle")
-
-        if "login" in page.url:
-            print("Error: Login failed. Check PA_USERNAME and PA_PASSWORD in GitHub Secrets.")
-            browser.close()
-            sys.exit(1)
-
-        print("Login verified. Looking for Extend button...")
-
-        extend_button = page.locator("form[action*='/extend'] input[type='submit'], form[action*='/extend'] button, input[value*='Run until']").first
-
-        if extend_button.count() > 0:
-            print("Clicking 'Run until 1 month from today' button...")
-            extend_button.scroll_into_view_if_needed()
-            extend_button.click(force=True)
-            page.wait_for_load_state("networkidle")
-            print("Success: Web app expiry extended successfully!")
-        else:
-            print("Extend button not found or app is already extended.")
+        # Loop through each account sequentially
+        for user, pwd in zip(USERNAMES, PASSWORDS):
+            extend_single_account(page, user, pwd)
 
         browser.close()
 
