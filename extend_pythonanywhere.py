@@ -25,7 +25,8 @@ def run():
         page.wait_for_load_state("networkidle")
 
         print("Entering credentials...")
-        username_input = page.locator("#id_auth-username, input[name='auth-username']").filter(has_not_class="tt-hint").first
+        # CSS :not(.tt-hint) excludes the hidden typeahead element cleanly
+        username_input = page.locator("#id_auth-username:not(.tt-hint), input[name='auth-username']:not(.tt-hint)").first
         password_input = page.locator("#id_auth-password, input[name='auth-password']").first
 
         username_input.wait_for(state="visible", timeout=10000)
