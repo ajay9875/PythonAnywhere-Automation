@@ -11,19 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        account:
-          - username: ${{ secrets.PA_USERNAME_1 }}
-            password: ${{ secrets.PA_PASSWORD_1 }}
-          - username: ${{ secrets.PA_USERNAME_2 }}
-            password: ${{ secrets.PA_PASSWORD_2 }}
-          - username: ${{ secrets.PA_USERNAME_3 }}
-            password: ${{ secrets.PA_PASSWORD_3 }}
-          - username: ${{ secrets.PA_USERNAME_4 }}
-            password: ${{ secrets.PA_PASSWORD_4 }}
-          - username: ${{ secrets.PA_USERNAME_5 }}
-            password: ${{ secrets.PA_PASSWORD_5 }}
-          - username: ${{ secrets.PA_USERNAME_6 }}
-            password: ${{ secrets.PA_PASSWORD_6 }}
+        index: [1, 2, 3, 4, 5, 6]
 
     steps:
       - name: Checkout Repository
@@ -42,6 +30,6 @@ jobs:
 
       - name: Run Extension Script
         env:
-          PA_USERNAME: ${{ matrix.account.username }}
-          PA_PASSWORD: ${{ matrix.account.password }}
+          PA_USERNAME: ${{ secrets[format('PA_USERNAME_{0}', matrix.index)] }}
+          PA_PASSWORD: ${{ secrets[format('PA_PASSWORD_{0}', matrix.index)] }}
         run: python extend_pythonanywhere.py
