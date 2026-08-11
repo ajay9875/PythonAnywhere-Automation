@@ -7,12 +7,24 @@ on:
 
 jobs:
   extend-app:
-    name: extend-account - PA_USERNAME_${{ matrix.index }}
+    name: extend-account - ${{ matrix.username }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        index: [1, 2, 3, 4, 5, 6]
+        include:
+          - username: 'MutulFundRecommender'
+            secret_idx: 1
+          - username: 'AiTourGuide'
+            secret_idx: 2
+          - username: 'TaskCare360'
+            secret_idx: 3
+          - username: 'king9'
+            secret_idx: 4
+          - username: 'BudgetWisely'
+            secret_idx: 5
+          - username: 'myportfolio98'
+            secret_idx: 6
 
     steps:
       - name: Checkout Repository
@@ -31,6 +43,6 @@ jobs:
 
       - name: Run Extension Script
         env:
-          PA_USERNAME: ${{ secrets[format('PA_USERNAME_{0}', matrix.index)] }}
-          PA_PASSWORD: ${{ secrets[format('PA_PASSWORD_{0}', matrix.index)] }}
+          PA_USERNAME: ${{ matrix.username }}
+          PA_PASSWORD: ${{ secrets[format('PA_PASSWORD_{0}', matrix.secret_idx)] }}
         run: python extend_pythonanywhere.py
